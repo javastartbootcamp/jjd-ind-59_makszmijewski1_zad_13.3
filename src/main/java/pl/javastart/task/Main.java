@@ -5,14 +5,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class Main {
 
     public static void main(String[] args) {
-        List<Currency> currencies = createListOfCurrencies();
+        Map<String, Currency> currencies = createListOfCurrencies();
         List<Product> products = createListOfProducts();
         savePriceInEuro(products, currencies);
         showSumInEuro(products);
@@ -22,21 +20,23 @@ public class Main {
     }
 
     private static void showCheapestProduct(List<Product> products) {
-        List<BigDecimal> prices = new ArrayList<>();
+        BigDecimal lowestPrice = products.get(0).getPriceInEuro();
         for (Product product : products) {
-            prices.add(product.getPriceInEuro());
+            if (product.getPriceInEuro().compareTo(lowestPrice) < 0) {
+                lowestPrice = product.getPriceInEuro();
+            }
         }
-        Collections.sort(prices);
-        System.out.println(prices.get(prices.size() - 1));
+        System.out.println(lowestPrice);
     }
 
     private static void showMostExpensiveProductInEuro(List<Product> products) {
-        List<BigDecimal> prices = new ArrayList<>();
+        BigDecimal maxPrice = products.get(0).getPriceInEuro();
         for (Product product : products) {
-            prices.add(product.getPriceInEuro());
+            if (product.getPriceInEuro().compareTo(maxPrice) > 0) {
+                maxPrice = product.getPriceInEuro();
+            }
         }
-        Collections.sort(prices);
-        System.out.println(prices.get(0));
+        System.out.println(maxPrice);
     }
 
     private static void showAveragePrice(List<Product> products) {
@@ -49,7 +49,7 @@ public class Main {
         System.out.println(average);
     }
 
-    private static void savePriceInEuro(List<Product> products, List<Currency> currencies) {
+    private static void savePriceInEuro(List<Product> products, Map<String, Currency> currencies) {
         for (Product product : products) {
             product.setPriceInEuro(calculatePriceInEuro(product, currencies));
         }
@@ -63,12 +63,13 @@ public class Main {
         System.out.println(sum);
     }
 
-    private static List<Currency> createListOfCurrencies() {
-        List<Currency> currencies = new ArrayList<>();
+    private static Map<String, Currency> createListOfCurrencies() {
+        Map<String, Currency> currencies = new HashMap<>();
         try (BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/currencies.csv"))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                currencies.add(createNewCurrency(line));
+                Currency newCureency = createNewCurrency(line);
+                currencies.put(newCureency.getDesignation(), newCureency);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -99,13 +100,8 @@ public class Main {
         return new Product(values[0], values[2], new BigDecimal(values[1]));
     }
 
-    private static BigDecimal calculatePriceInEuro(Product product, List<Currency> currencies) {
-        BigDecimal priceInEuro = new BigDecimal(0);
-        for (Currency currency : currencies) {
-            if (product.getCurrency().equals(currency.getDesignation())) {
-                priceInEuro = product.getPriceInCurrency().multiply(currency.getRateToEur());
-            }
-        }
-        return priceInEuro;
+    private static BigDecimal calculatePriceInEuro(Product product, Map<String, Currency> currencies) {
+        Currency currency = currencies.get(product.getCurrency());
+        return product.getPriceInCurrency().multiply(currency.getRateToEur());
     }
 }
